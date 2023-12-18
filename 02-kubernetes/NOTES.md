@@ -79,9 +79,48 @@ for N in {1..50}; do curl -s "http://$WEBIP:$WEBPORT"; done
 for N in {1..50}; do curl -s "http://$WEBIP:$WEBPORT"; done | sort | uniq -c | sort -nr
 ```
 
+### External access (put all targets behind one IP and port of (cloud) load balancer)
+
 https://kind.sigs.k8s.io/docs/user/loadbalancer/
 
+```shell
+# check network used by kind cluster
+docker network inspect -f '{{.IPAM.Config}}' kind
+# 172.18.0.0/16
 
-k get po -l app=web  -o name | while read P; do kubectl exec $P -- sh -c "echo $P | tee /usr/share/nginx/html/index.html"; done
- for P in {1..50}; do curl -s 172.18.255.200/; done | sort | uniq -c
+# so our LB config builds on top of this CIDR for LB front-end IPs:
+cat 02-kubernetes/metallb-config.yaml
+# dedicated part of it: 172.18.255.200-172.18.255.250
+
+# INSTALL lb
+kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.13.7/config/manifests/metallb-native.yaml
+# wait for deployment done
+kubectl wait --namespace metallb-system --for=condition=ready pod --selector=app=metallb --timeout=90s
+
+# set LB IP pool:
+kubectl apply -f 02-kubernetes/metallb-config.yaml
+
+# recteate service for NGINX:
+kubectl delete svc/web
+# notice type LoadBalancer
+kubectl expose deploy/web --port 80 --type LoadBalancer
+
+# check it
+kubectl get svc/web
+# external IP should come from your pool 172.18.255.200-172.18.255.250
+
+# finally port 80 access, right?
+curl 172.18.255.200
+# still handled by multiple pods:
+for N in {1..50}; do curl -s "http://172.18.255.200"; done | sort | uniq -c | sort -nr
+
+# inspect it
+kubectl get svc/web -o yaml
+# cluster IP and node port familiar?
+
+# ingress(external) IP:
+kubectl get svc/web -o json | jq -r '.status.loadBalancer.ingress'
+kubectl get svc/web -o json | jq -r '.status.loadBalancer.ingress[0].ip'
+curl $(kubectl get svc/web -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+```
  
