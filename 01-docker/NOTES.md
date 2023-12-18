@@ -132,3 +132,25 @@ curl localhost:9090
 
 #### Container network
 
+```shell
+# look at PORTS
+docker ps
+# who is handling them?
+netstat -nap | egrep '8080|9090'
+# web9090 details
+docker inspect web9090
+# yes - bridge networking has interface with private IP for all 
+docker inspect web9090 | jq '.|keys'
+docker inspect web9090 | jq '.[0]|keys'
+docker inspect web9090 | jq '.[0].NetworkSettings'
+
+# look for docker0
+ip a
+# participating in bridge
+ls /sys/class/net/docker0/brif 
+
+# available networks
+docker network ls
+# inspect
+docker network inspect bridge
+```
