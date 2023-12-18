@@ -154,3 +154,46 @@ docker network ls
 # inspect
 docker network inspect bridge
 ```
+
+#### Build custom container
+
+```shell
+# content
+echo "Hello. Time is now: $(date)" | tee hello.txt
+
+# build recipe aka Dockerfile:
+cat << EOF > Dockerfile
+FROM nginx
+COPY hello.txt /usr/share/nginx/html/index.html
+EOF
+
+cat Dockerfile
+
+# build and tag
+docker build -t webnow .
+
+# run from new image
+docker run -d --rm -p 9999:80 webnow
+# check
+curl localhost:9999
+```
+
+Previous image was built by recipe (Dockerfile), but it may also be done from container to image:
+
+```shell
+# start new container
+docker run -d --rm -p 8888:80 --name webfuture nginx
+curl localhost:8888
+# modify
+docker exec -it webfuture bash -c '(date; echo "Back to future") | tee /usr/share/nginx/html/index.html'
+curl localhost:8888
+
+# now we make modified web server to future:latest image
+docker commit webfuture future
+
+# remove and test
+docker stop webfuture
+
+docker run -d --rm -p 8888:80 --name webfuture future
+curl localhost:8888
+```
