@@ -197,3 +197,13 @@ docker stop webfuture
 docker run -d --rm -p 8888:80 --name webfuture future
 curl localhost:8888
 ```
+
+
+```shell
+curl -OL https://shiftleft-prod-bucket.sg.iaas.checkpoint.com/blades/shiftleft/bin/linux/amd64/0.0.38/shiftleft
+
+chmod +x ./shiftleft
+
+./shiftleft image-scan -t 900 -i /tmp/olddebian.tar
+
+```
