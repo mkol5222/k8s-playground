@@ -198,6 +198,28 @@ docker run -d --rm -p 8888:80 --name webfuture future
 curl localhost:8888
 ```
 
+```shell
+# make reverse proxy from 80 to 172.17.0.1:8080
+cd $(mktemp -d)
+cat << EOF > Dockerfile
+FROM nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+EOF
+
+cat << EOF > nginx.conf
+server {
+    server_name _;
+    location / { 
+        proxy_pass http://172.17.0.1:8080;
+    }
+}
+EOF
+
+docker build -t reverse_proxy .
+
+# test it
+docker run --rm -p 9090:80 --name proxy -d reverse_proxy
+```
 
 ```shell
 curl -OL https://shiftleft-prod-bucket.sg.iaas.checkpoint.com/blades/shiftleft/bin/linux/amd64/0.0.38/shiftleft
