@@ -201,11 +201,12 @@ curl localhost:8888
 ```shell
 # make reverse proxy from 80 to 172.17.0.1:8080
 cd $(mktemp -d)
+# make Dockerfile
 cat << EOF > Dockerfile
 FROM nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EOF
-
+# make NGINX config
 cat << EOF > nginx.conf
 server {
     server_name _;
@@ -215,10 +216,12 @@ server {
 }
 EOF
 
+# build image reverse_proxy:latest
 docker build -t reverse_proxy .
 
 # test it
 docker run --rm -p 9090:80 --name proxy -d reverse_proxy
+curl localhost:9090
 ```
 
 ```shell
