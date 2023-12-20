@@ -1,0 +1,33 @@
+version: "3.9"
+ 
+########################### NETWORKS
+networks:
+  default:
+    driver: bridge
+ 
+########################### SERVICES
+services:
+  grafana:
+    image: grafana/grafana:10.0.10-ubuntu
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+
+# InfluxDB - Database for sensor data
+  influxdb:
+    image: influxdb:1.8
+    container_name: influxdb
+    networks:
+      - default
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    # volumes:
+    #   - $DOCKERDIR/appdata/influxdb2/config:/etc/influxdb2
+    #   - $DOCKERDIR/appdata/influxdb2/db:/var/lib/influxdb2
