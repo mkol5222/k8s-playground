@@ -29,7 +29,22 @@ az network virtual-appliance list -o json | jq
 
 # managed apps
 az managedapp list -o table
-az managedapp list -o json | jq
+az managedapp list -o json | jq | less
+# managed app id
+az managedapp list -o json | jq '.[].id'
+# image version
+az managedapp list -o json | jq '.[].parameters.imageVersion.value'
+# managed RG
+az managedapp list -o json | jq '.[].managedResourceGroupId'
+
+# update permissions command
+# az rest --method POST --uri "/subscriptions/<SUBSCIRPTION ID>/resourceGroups/<RG_NAME>/providers/Microsoft.Solutions/applications/<MANAGED APP>/refreshPermissions?api-version=2019-07-01&targetVersion=1.0.7"
+APP_ID=$(az managedapp list --query "[0].id" -o tsv)
+echo "Command to refresh permissions:"
+echo 
+echo "   az rest --method POST --uri '${APP_ID}/refreshPermissions?api-version=2019-07-01&targetVersion=1.0.7'"
+
+
 az managedapp list --query "[0].id" -o tsv
 az managedapp list --query "[0].managedResourceGroupId" -o tsv
 az managedapp list --query "[].managedResourceGroupId" -o tsv
