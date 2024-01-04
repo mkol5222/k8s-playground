@@ -3,3 +3,9 @@ shiftleft
 01-docker/sl.sh
 7edbed26ed122063ed025b830362c9f0fe75de24eebd69dca2207e680340a65f.json
 manifest.json
+10-open-appsec-npm/appsec-config
+10-open-appsec-npm/appsec-data
+10-open-appsec-npm/appsec-logs
+10-open-appsec-npm/appsec-localconfig
+10-open-appsec-npm/letsencrypt
+
