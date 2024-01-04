@@ -26,6 +26,8 @@ az network vhub list -o json | jq
 az network vhub show -g poc-vwan -n weHub -o json | jq
 az network virtual-appliance list --help
 az network virtual-appliance list -o json | jq
+# show NVA SKU
+az network virtual-appliance list -o json | jq '.[].nvaSku'
 
 # managed apps
 az managedapp list -o table
@@ -55,4 +57,7 @@ az resource list -g mrg-azure-vwan-20240104085745 -o table
 # get Microsoft.ManagedIdentity/userAssignedIdentities
 az resource list -g mrg-azure-vwan-20240104085745 --resource-type Microsoft.ManagedIdentity/userAssignedIdentities -o json
 
+# if multiple subscriptions
+export SUBSCRIPTION_ID=$(az account list --query "[?isDefault].id" -o tsv)
+az network virtual-appliance list --subscription $SUBSCRIPTION_ID -o json | jq '.[].nvaSku'
 ```
