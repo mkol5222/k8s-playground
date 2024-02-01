@@ -37,6 +37,7 @@ kubectl create deploy web --image nginx --replicas 3
 kubectl get pods -o wide --show-labels
 
 # make it accessible on node port
+kubectl expose deploy/web --port 80 --type ClusterIP
 kubectl expose deploy/web --port 80 --type NodePort
 
 # IP of node
@@ -76,7 +77,7 @@ curl -s "http://$WEBIP:$WEBPORT"
 # try in scale
 for N in {1..50}; do curl -s "http://$WEBIP:$WEBPORT"; done
 # count Pods visited
-for N in {1..50}; do curl -s "http://$WEBIP:$WEBPORT"; done | sort | uniq -c | sort -nr
+for N in {1..60}; do curl -s "http://$WEBIP:$WEBPORT"; done | sort | uniq -c | sort -nr
 ```
 
 ### External access (put all targets behind one IP and port of (cloud) load balancer)
