@@ -5,6 +5,10 @@ metadata:
   namespace: sandbox
 spec:
   commonName: first-cert.local
+  dnsNames:
+  - '*.example.com'
+  - example.com
+  - example.org
   secretName: first-cert
   privateKey:
     algorithm: ECDSA

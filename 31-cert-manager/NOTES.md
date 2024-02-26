@@ -56,6 +56,7 @@ openssl x509 -in /tmp/ca.crt -text -noout | grep -i CN
 
 kubectl -n sandbox get secret/first-cert -o json |  jq -r '.data."tls.crt"' | base64 -d | tee /tmp/tls.crt
 openssl x509 -in /tmp/tls.crt -text -noout | grep -i CN
+openssl x509 -in /tmp/tls.crt -text -noout | grep -i DNS
 
 
 # uninstall
