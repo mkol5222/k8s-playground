@@ -60,6 +60,8 @@ for POD in $PODS; do echo $POD; sudo microk8s.kubectl exec $POD -- sh -c "echo $
 # check who is responding on LB
 LBIP=$(sudo microk8s.kubectl get svc web -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 for i in $(seq 90); do curl -s $LBIP; done | sort | uniq -c
+# leave VM
+exit
 ```
 
 ## Cleanup
