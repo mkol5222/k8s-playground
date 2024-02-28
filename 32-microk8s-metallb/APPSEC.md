@@ -71,4 +71,37 @@ sudo microk8s.kubectl logs -f deployment.apps/cert-manager -n cert-manager
 
 # NODE1: check cert subject
 curl microk8s.klaud.online --resolve  microk8s.klaud.online:80:127.0.0.1  --resolve  microk8s.klaud.online:443:127.0.0.1  -L -vvv 2>&1 | grep subject
+
+curl microk8s.klaud.online --resolve  microk8s.klaud.online:80:127.0.0.1  --resolve  microk8s.klaud.online:443:127.0.0.1  -L -vvv
+curl https://microk8s.klaud.online/?q=aaa --resolve  microk8s.klaud.online:80:127.0.0.1  --resolve  microk8s.klaud.online:443:127.0.0.1 
+curl https://microk8s.klaud.online/?q=cat+/etc/passwd --resolve  microk8s.klaud.online:80:127.0.0.1  --resolve  microk8s.klaud.online:443:127.0.0.1 
+curl http://microk8s.klaud.online/?q=aaa --resolve  microk8s.klaud.online:80:127.0.0.1  --resolve  microk8s.klaud.online:443:127.0.0.1 
+
+curl https://microk8s.klaud.online/ip/ --resolve  microk8s.klaud.online:80:127.0.0.1  --resolve  microk8s.klaud.online:443:127.0.0.1  -L -vvv
+
+
+### ingress service
+sudo microk8s kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress
+  namespace: ingress
+spec:
+  selector:
+    name: nginx-ingress-microk8s
+  type: LoadBalancer
+  # loadBalancerIP is optional. MetalLB will automatically allocate an IP from its pool if not
+  # specified. You can also specify one manually.
+  # loadBalancerIP: x.y.z.a
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 443
+EOF
 ```
