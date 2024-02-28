@@ -173,6 +173,8 @@ curl -k -vvv https://127.0.0.1 -H 'Host: microbot.klaud.online/' 2>&1 | grep CN
 
 sudo microk8s kubectl get ingress
 sudo microk8s kubectl delete ingress microbot-ingress
+sudo microk8s kubectl delete svc microbot
+sudo microk8s kubectl delete deploy microbot
 
 
 
