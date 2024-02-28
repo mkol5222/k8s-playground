@@ -75,7 +75,8 @@ multipass shell node1
 
 
 # NODE1: store cf token - replace XXX !!! - notice NS cert-manager for Cluste Issuer
-sudo microk8s kubectl create secret generic cloudflare-api-token-secret --from-literal=api-token=XXX -n cert-manager
+CFAPIKEY=xxxx
+sudo microk8s kubectl create secret generic cloudflare-api-token-secret --from-literal=api-token=$CFAPIKEY -n cert-manager
 
 
 # NODE1: create issuer
@@ -92,11 +93,6 @@ spec:
    privateKeySecretRef:
      # Secret resource that will be used to store the account's private key.
      name: lets-encrypt-priviate-key
-   # Add a single challenge solver, HTTP01 using nginx
-#    solvers:
-#    - http01:
-#        ingress:
-#          class: public
    solvers:
       - dns01:
           cloudflare:
@@ -106,6 +102,33 @@ spec:
               key: api-token
 EOF
 
+# NODE1 
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: testme.klaud.online
+  namespace: default
+spec:
+  commonName: testme2.klaud.online
+  dnsNames:
+  - testme2.klaud.online
+  secretName: testme.klaud.online
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: lets-encrypt
+    kind: ClusterIssuer
+    group: cert-manager.io
+EOF
+
+kubectl logs -f deployment.apps/cert-manager -n cert-manager
+
+kubectl get secret
+kubectl get certificate -o yaml
+
+kubectl delete certificate testme.klaud.online
 
 # NODE1: check issuer
 sudo microk8s kubectl get clusterissuer -o wide
