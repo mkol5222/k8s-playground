@@ -9,7 +9,7 @@
 
 ```shell
 # create instances
-multipass launch -n node1 -m 2G -d 10G -c 4
+multipass launch -n node1 -m 4G -d 10G -c 4
 multipass launch -n node2 -m 2G -d 10G -c 4
 
 # install microk8s
