@@ -19,7 +19,7 @@ multipass exec node2 -- sudo snap install microk8s --classic
 # join nodes
 multipass exec node1 -- sudo microk8s.add-node --format short
 # !!! copy the join command and run it on node2 !!! USE YOUR REAL TOKEN AND IP from node1 command output
-multipass exec node2 -- sudo microk8s join 172.28.171.86:25000/084fd69c8662d44bf637499b5d4dad9d/814b85a67cfe --worker
+multipass exec node2 -- sudo microk8s join 172.28.173.104:25000/2df21aed0c99fff6345fda4a76f314e5/bda5f6103ac3 --worker
 
 # check nodes
 multipass exec node1 -- sudo microk8s.kubectl get no
@@ -49,7 +49,7 @@ multipass exec node1 -- sudo microk8s.kubectl get svc web
 
 # LB IP
 multipass exec node1 -- sudo microk8s.kubectl get svc web -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
-curl 172.28.163.151
+curl 172.28.163.160
 
 # identify pod serving the request
 multipass shell node1
@@ -74,8 +74,7 @@ multipass exec node1 -- sudo microk8s.enable dns cert-manager ingress
 multipass shell node1
 
 
-# NODE1: store cf token - replace XXX !!!
-
+# NODE1: store cf token - replace XXX !!! - notice NS cert-manager for Cluste Issuer
 sudo microk8s kubectl create secret generic cloudflare-api-token-secret --from-literal=api-token=XXX -n cert-manager
 
 
@@ -112,13 +111,13 @@ EOF
 sudo microk8s kubectl get clusterissuer -o wide
 sudo microk8s kubectl describe clusterissuer
 
-# NODE1:
+# NODE1: yet another service - will publish it on HTTPS using ingress
 sudo microk8s kubectl create deploy --image cdkbot/microbot:1 --replicas 3 microbot
 sudo microk8s kubectl expose deploy microbot --port 80 --type ClusterIP
 sudo microk8s kubectl get pod,svc
 
 
-# NODE1:
+# NODE1: ingress to microbot at HTTPS://microbot.klaud.online
 sudo microk8s kubectl apply -f - <<EOF
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -144,7 +143,7 @@ spec:
        pathType: Exact
 EOF
 
-# NODE1:
+# NODE1: look at the ingress
 sudo microk8s kubectl describe ingress microbot-ingress
 
 # NODE1:
@@ -159,10 +158,16 @@ sudo microk8s kubectl describe secret
 sudo microk8s kubectl get certificaterequests -A
 sudo microk8s kubectl describe certificaterequests -A
 
+# NODE1: check cert-manager logs as it works on our certificate
 sudo microk8s.kubectl logs -f deployment.apps/cert-manager -n cert-manager
 
+# NODE1: access app via ingress on 127.0.0.1
 curl 127.0.0.1 -H 'Host: microbot.klaud.online' -L -vvv
 curl microbot.klaud.online --resolve  microbot.klaud.online:80:127.0.0.1  --resolve  microbot.klaud.online:443:127.0.0.1  -L -vvv
+
+# NODE1: check cert subject
+curl microbot.klaud.online --resolve  microbot.klaud.online:80:127.0.0.1  --resolve  microbot.klaud.online:443:127.0.0.1  -L -vvv 2>&1 | grep subject
+
 curl -k -vvv https://127.0.0.1 -H 'Host: microbot.klaud.online'
 curl -k -vvv https://127.0.0.1 -H 'Host: microbot.klaud.online/' 2>&1 | grep CN
 
