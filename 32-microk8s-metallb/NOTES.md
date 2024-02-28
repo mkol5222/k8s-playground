@@ -123,6 +123,10 @@ spec:
     group: cert-manager.io
 EOF
 
+kubectl describe challenge
+  # Reason:      Waiting for DNS-01 challenge propagation: Could not determine the zone for "_acme-challenge.testme2.klaud.online.": When querying the SOA record for the domain '_acme-challenge.testme2.klaud.online.' using nameservers [10.152.183.10:53], rcode was expected to be 'NOERROR' or 'NXDOMAIN', but got 'SERVFAIL'
+# solved by --dns01-recursive-nameservers-only --dns01-recursive-nameservers=8.8.8.8:53,1.1.1.1:53
+
 kubectl logs -f deployment.apps/cert-manager -n cert-manager
 
 kubectl get secret
