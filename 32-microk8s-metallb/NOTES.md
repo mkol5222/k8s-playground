@@ -110,9 +110,9 @@ metadata:
   name: testme.klaud.online
   namespace: default
 spec:
-  commonName: testme2.klaud.online
+  commonName: testme3.klaud.online
   dnsNames:
-  - testme2.klaud.online
+  - testme3.klaud.online
   secretName: testme.klaud.online
   privateKey:
     algorithm: ECDSA
