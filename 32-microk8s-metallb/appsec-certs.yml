@@ -38,8 +38,12 @@ spec:
         - containerPort: 80   # HTTP port
         - containerPort: 8117 # Health-check port
         volumeMounts:
-        - name: certs
-          mountPath: "/etc/certs/"
+          - name: certs
+            mountPath: /etc/certs/app.pem
+            subPath: tls.crt
+          - name: certs
+            mountPath: /etc/certs/app.key
+            subPath: tls.key
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
@@ -69,7 +73,7 @@ spec:
       volumes:
       - name: certs
         secret:
-            secretName: testme4.klaud.online
+            secretName: wwwcaa.klaud.online
 
 
       
@@ -86,12 +90,15 @@ spec:
       port: 443
       name: https
       targetPort: 443  # Match the containerPort of the deployed pod
+      nodePort: 31703  # Use a unique nodePort value
     - protocol: TCP
       port: 80
       name: http
       targetPort: 80   # Match the containerPort of the deployed pod
+      nodePort: 32690  # Use a unique nodePort value
     - protocol: TCP
       port: 8117
+      nodePort: 31117  # Use a unique nodePort value
       name: health-check
       targetPort: 8117  # Match the containerPort of the deployed pod
   type: LoadBalancer  # Use NodePort or ClusterIP based on your requirements
