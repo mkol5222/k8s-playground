@@ -1,7 +1,7 @@
 
 # Kubernetes Ingress with KIND cluster in Codespace
 
-Reference: https://kind.sigs.k8s.io/docs/user/ingress/
+Reference: https://kind.sigs.k8s.io/docs/user/ingress/ and https://kind.sigs.k8s.io/docs/user/loadbalancer/
 
 ```shell
 # working folder
