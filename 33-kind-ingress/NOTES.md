@@ -153,4 +153,10 @@ k -n metallb-system logs -f deploy/controller
 k get svc web2 
 # NAME   TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)        AGE
 # web2   LoadBalancer   10.96.187.197   172.18.0.200   80:30532/TCP   6m47s
+
+# local access to LB IP
+echo http://$(k get svc web2 -o json | jq -r .status.loadBalancer.ingress[0].ip)
+curl http://$(k get svc web2 -o json | jq -r .status.loadBalancer.ingress[0].ip)
+
+# now we need to forward this 172.18.0.200 services to our browser, if needed
 ```
