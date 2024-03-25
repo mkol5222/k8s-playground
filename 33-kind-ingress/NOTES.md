@@ -325,4 +325,10 @@ k get certificate -A --watch
 # web         www-test-ingress-tls   False   www-test-ingress-tls   2m33s
 # web         www-test-ingress-tls   True    www-test-ingress-tls   2m41s
 
+
+
+### to do NGINX Ingress default certificate
+curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | less
+# look under args:
+
 ```
