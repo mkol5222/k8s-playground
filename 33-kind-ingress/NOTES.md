@@ -159,4 +159,170 @@ echo http://$(k get svc web2 -o json | jq -r .status.loadBalancer.ingress[0].ip)
 curl http://$(k get svc web2 -o json | jq -r .status.loadBalancer.ingress[0].ip)
 
 # now we need to forward this 172.18.0.200 services to our browser, if needed
+
+
+### Lets Encrypt Certificates with CloudFlare DNS-01
+
+# External DNS to automate A records to Ingress or Svc IPs
+
+# create namespace for external-dns
+k create ns external-dns
+
+# use real Cloudflare API token and e-mail - ask instructor
+export EMAIL=someone@example.com
+export CFTOKEN='bring-your-own-token'
+
+# store as secret
+kubectl -n external-dns create secret generic  cf-dns-setup --from-literal=CF_API_EMAIL=$EMAIL --from-literal=CF_API_TOKEN=$CFTOKEN
+# check
+k describe -n external-dns secret/cf-dns-setup
+
+# deploy it to NS external-dns for domain cloudguard.rocks
+
+cat << 'EOF' | k apply -n external-dns -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: external-dns
+rules:
+- apiGroups: [""]
+  resources: ["services","endpoints","pods"]
+  verbs: ["get","watch","list"]
+- apiGroups: ["extensions","networking.k8s.io"]
+  resources: ["ingresses"]
+  verbs: ["get","watch","list"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-dns-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: external-dns
+subjects:
+- kind: ServiceAccount
+  name: external-dns
+  namespace: default
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+      - name: external-dns
+        image: registry.k8s.io/external-dns/external-dns:v0.14.0
+        args:
+        - --source=service 
+        - --source=ingress 
+        - --domain-filter=cloudguard.rocks 
+        - --provider=cloudflare
+        - --txt-owner-id=mko.cloudguard-rocks # use your own!
+        env:
+        - name: CF_API_TOKEN
+          valueFrom:
+             secretKeyRef:
+                name: cf-dns-setup
+                key: CF_API_TOKEN
+        - name: CF_API_EMAIL
+          valueFrom:
+             secretKeyRef:
+                name: cf-dns-setup
+                key: CF_API_EMAIL
+---
+EOF
+
+# check what was deployed for you
+k get all -n external-dns
+
+# logs
+k -n external-dns logs -f deploy/external-dns
+
+# note: ingress above has
+# www-test.cloudguard.rocks. in external-dns annotation
+
+### OPEN ISSUE: external-dns cannot talk to k8s API
+# time="2024-03-25T20:46:01Z" level=info msg="Using inCluster-config based on serviceaccount-token"
+# time="2024-03-25T20:46:01Z" level=info msg="Created Kubernetes client https://10.96.0.1:443"
+# time="2024-03-25T20:47:01Z" level=fatal msg="failed to sync *v1.Pod: context deadline exceeded"
+# NAME         TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)        AGE
+# kubernetes   ClusterIP      10.96.0.1       <none>         443/TCP        36m
+
+### Certificate Manager for Lets Encrypt Certificates
+
+#  ark install --help | grep cert-manager
+#  cert-manager                    Install cert-manager
+
+ark install cert-manager
+
+k get all -n cert-manager
+
+# cluster issuer for Lets Encrypt
+
+# use real Cloudflare API token and e-mail - ask instructor
+export EMAIL=someone@example.com
+export CFTOKEN='bring-your-own-token'
+
+# store as secret
+k -n cert-manager create secret generic  cloudflare-api-token-secret --from-literal=api-token=$CFTOKEN
+# check
+k -n cert-manager describe secret/cloudflare-api-token-secret
+echo $EMAIL
+
+# make cluster issuer for lets-encrypt with DNS-01 challenge
+cat << 'EOF' | sed "s/someone@example.com/$EMAIL/" | k apply -f -
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+ name: lets-encrypt
+ namespace: cert-manager
+spec:
+ acme:
+   email: someone@example.com
+   server: https://acme-v02.api.letsencrypt.org/directory
+   privateKeySecretRef:
+     # Secret resource that will be used to store the account's private key.
+     name: lets-encrypt-priviate-key
+   # Add a single challenge solver, DNS01 using cloudflare
+   solvers:
+    - dns01:
+        cloudflare:
+          email: someone@example.com
+          apiTokenSecretRef:
+            name: cloudflare-api-token-secret
+            key: api-token
+EOF
+
+# check logs
+k -n cert-manager logs -f deploy/cert-manager
+
+# check certificates
+k get certificate -A
+# wait for READY state
+k get certificate -A --watch
+
+#NAMESPACE   NAME                   READY   SECRET                 AGE
+# web         www-test-ingress-tls   False   www-test-ingress-tls   2m33s
+# web         www-test-ingress-tls   True    www-test-ingress-tls   2m41s
+
 ```
