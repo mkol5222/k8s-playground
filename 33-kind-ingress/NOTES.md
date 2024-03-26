@@ -363,5 +363,58 @@ wget https://downloads.openappsec.io/packages/helm-charts/nginx-ingress/open-app
 # obtain AppSec Kubernetes Profile token from Infinity Portal
 export CPTOKEN=cp-1111 # use your own!
 
+# remember to set CPTOKEN above! 
+### notice controller.extraArgs.default-ssl-certificate - mapping EXISTING secret
+helm install appsec open-appsec-k8s-nginx-ingress-latest.tgz \
+--set controller.extraArgs.default-ssl-certificate="default/example-com-tls" \
+--set controller.appsec.mode=managed --set appsec.agentToken=$CPTOKEN \
+--set appsec.image.registry="" \
+--set appsec.image.repository=checkpoint \
+--set appsec.image.image=infinity-next-nano-agent \
+--set appsec.image.tag=831851 \
+--set controller.ingressClass=public \
+--set controller.ingressClassResource.name=public \
+--set controller.ingressClassResource.controllerValue="k8s.io/public" \
+--set appsec.persistence.enabled=false \
+--set controller.service.externalTrafficPolicy=Local \
+--set controller.hostNetwork=true \
+-n appsec --create-namespace
+
+
+
+# now appsec ingress is deployed to NS appsec - wait once it is ready
+kubectl get po -n appsec --watch
+
+# check default cert
+curl https://127.0.0.1 -k -vvv 2>&1 
+curl https://127.0.0.1 -k -vvv 2>&1 | grep CN
+# *  subject: CN=example.com
+# *  issuer: CN=example.com
+
+# now upgrade without default-ssl-certificate
+helm uninstall -n appsec appsec
+
+helm install appsec open-appsec-k8s-nginx-ingress-latest.tgz \
+--set controller.appsec.mode=managed --set appsec.agentToken=$CPTOKEN \
+--set appsec.image.registry="" \
+--set appsec.image.repository=checkpoint \
+--set appsec.image.image=infinity-next-nano-agent \
+--set appsec.image.tag=831851 \
+--set controller.ingressClass=public \
+--set controller.ingressClassResource.name=public \
+--set controller.ingressClassResource.controllerValue="k8s.io/public" \
+--set appsec.persistence.enabled=false \
+--set controller.service.externalTrafficPolicy=Local \
+--set controller.hostNetwork=true \
+-n appsec --create-namespace
+
+# check pods
+k get po -n appsec
+# kubectl delete --force one terminating to avoid 900sec wait
+
+# check cert again
+curl https://127.0.0.1 -k -vvv 2>&1 | grep CN
+# *  subject: O=Acme Co; CN=Kubernetes Ingress Controller Fake Certificate
+# *  issuer: O=Acme Co; CN=Kubernetes Ingress Controller Fake Certificate
 
 ```
