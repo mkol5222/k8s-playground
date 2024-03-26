@@ -44,3 +44,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 kind
+tls.crt
+tls.key

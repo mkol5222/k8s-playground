@@ -329,6 +329,39 @@ k get certificate -A --watch
 
 ### to do NGINX Ingress default certificate
 curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | less
-# look under args:
+# look under args: for /nginx-ingress-controller
+
+# own self signed certificate
+# self signed cert
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=example.com"
+# make k8s secret from it
+kubectl create secret tls example-com-tls --key tls.key --cert tls.crt
+# see  secret default/example-com-tls 
+k get secret -n default example-com-tls -o yaml
+
+curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | grep -C 5 '/nginx-ingress-controller'
+# add one more arg
+curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | sed '/nginx-ingress-controller/a \ \ \ \ \ \ \ \ - --default-ssl-certificate=default/example-com-tls' | grep -C 5 '/nginx-ingress-controller'
+# apply change
+curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | sed '/nginx-ingress-controller/a \ \ \ \ \ \ \ \ - --default-ssl-certificate=default/example-com-tls'  | kubectl apply -f -
+
+# check it for real
+k describe ing -A
+k get svc -n ingress-nginx # mapped by KIND to localhost
+
+curl https://127.0.0.1 -k -vvv 2>&1 | grep CN
+curl https://www-test.cloudguard.rocks --resolve www-test.cloudguard.rocks:443:127.0.0.1 -vvv 2>&1 | grep CN
+
+### REPLACE WITH APPSEC
+
+# uninstall
+curl -s https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml | k delete -f -
+
+# fetch appsec helm chart
+wget https://downloads.openappsec.io/packages/helm-charts/nginx-ingress/open-appsec-k8s-nginx-ingress-latest.tgz
+
+# obtain AppSec Kubernetes Profile token from Infinity Portal
+export CPTOKEN=cp-1111 # use your own!
+
 
 ```
