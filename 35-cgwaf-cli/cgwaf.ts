@@ -75,6 +75,78 @@ async function publishRequest(token: string) {
     return responseJson;
 }
 
+
+
+async function enforcePolicyRequest(token: string) {
+    const response = await fetch("https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            query: `mutation {
+                enforcePolicy {
+                    id
+                }
+            }`
+        })
+    });
+    const responseJson = await response.json();
+    // console.log(responseJson);
+    return responseJson;
+}
+
+async function getTaskRequest(token: string, taskId: string) {
+    const response = await fetch("https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            variables: { id: taskId },
+            query: `query getTask($id: ID!) {
+                getTask(id: $id) {
+                  id
+                  tenantId
+                  type
+                  status
+                  message
+                  startTime
+                  endTime
+                  errorCode
+                  referenceId
+                }
+              }`
+        })
+    });
+    const responseJson = await response.json();
+    // console.log(responseJson);
+    return responseJson;
+}
+
+async function enforcePolicyAndWait(token: string) {
+    const startTs = Date.now();
+    const enforcePolicy = await enforcePolicyRequest(token);
+    if (enforcePolicy.data.enforcePolicy) {
+        const taskId = enforcePolicy.data.enforcePolicy.id;
+        console.log("Task ID: ", taskId);
+        let task = await getTaskRequest(token, taskId);
+
+        console.log("Task: ", task);
+        while (task?.data?.getTask?.status === "InProgress") {
+            console.log("Task status: ", task.data.getTask.status);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            task = await getTaskRequest(token, taskId);
+        }
+        console.log("Task status: ", task.data.getTask.status);
+        console.log("Task duration: ", (Date.now() - startTs) / 1000, " seconds");
+
+        return task.data.getTask.status;
+    }
+}
+
 async function deleteAssetRequest(token: string, id: string) {
     const response = await fetch("https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql", {
         method: "POST",
@@ -548,7 +620,7 @@ await new Command()
     )
     .command("dns",
     new Command()
-        .description("manage SaaS DNS records (CNAMES)")
+        .description("show SaaS DNS records (CNAMES)")
         .command(
             "cert-cnames",
             new Command()
@@ -600,5 +672,25 @@ await new Command()
                     processOutput(cnames, output);
                 })
         )
+)
+.command("publish",
+new Command()
+    .description("publish policy changes")
+    .action (async (options, ...args) => {
+        const config = await loadConfig();
+        const token: AuthResponse = await getToken(config);
+        const publish = await publishRequest(token.data.token);
+        console.log(JSON.stringify(publish, null, 2));
+    })
+)
+.command("enforce",
+new Command()
+    .description("enforce policy and wait for completion")
+    .action (async (options, ...args) => {
+        const config = await loadConfig();
+        const token: AuthResponse = await getToken(config);
+        const publish = await enforcePolicyAndWait(token.data.token);
+        console.log(JSON.stringify(publish, null, 2));
+    })
 )
     .parse(Deno.args);
