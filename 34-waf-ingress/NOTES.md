@@ -71,6 +71,10 @@ helm install appsec open-appsec-k8s-nginx-ingress-latest.tgz \
 --set controller.service.externalTrafficPolicy=Local \
 -n appsec --create-namespace
 
+# expose on node's 30080 and 30443 that kinds maps to Codespace's 80/443
+kubectl -n appsec patch svc appsec-open-appsec-k8s-nginx-ingress-controller --patch '{"spec": {"type": "NodePort"}}'
+kubectl -n appsec patch svc appsec-open-appsec-k8s-nginx-ingress-controller --patch-file ingress-ports.json
+kubectl -n appsec get svc appsec-open-appsec-k8s-nginx-ingress-controller
 # check ns appsec
 watch -d kubectl get all -n appsec
 ```
@@ -95,5 +99,19 @@ ingress.networking.k8s.io/ip-iol-cz created
 
 Test access via the ingress
 ```shell
+# expected output is IP address of Codespace
 curl http://127.0.0.1.nip.io/ip/
+# direct access - same IP returned from server
+curl ip.iol.cz/ip/
+
+# no security is enforced however - still reaching the server
+curl 'http://127.0.0.1.nip.io/ip/?q=cat+/etc/passwd'
 ```
+
+Summary: we have working Ingress to rule served from Service representing external website, however no active CloudGuard WAF policy. It has to be fixed in CloudGuard WAF policy.
+
+
+## CloudGuard WAF policy using web UI
+
+Login to your Infinity Portal tenant with Kubernetes Profile. We will define new Web Application asset in Prevent Mode and assign it to `kind-profile`.
+Let start at [Getting started]() section.
