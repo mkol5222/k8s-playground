@@ -114,4 +114,42 @@ Summary: we have working Ingress to rule served from Service representing extern
 ## CloudGuard WAF policy using web UI
 
 Login to your Infinity Portal tenant with Kubernetes Profile. We will define new Web Application asset in Prevent Mode and assign it to `kind-profile`.
-Let start at [Getting started]() section.
+Let start at [Getting started](https://portal.checkpoint.com/dashboard/appsec#/waf-policy/getting-started) section.
+
+![Getting Started](./img/get-started.png)
+
+Choose New Asset / Web Application
+Name application: `127.0.0.1.nip.io`
+Add front-end URL (1): `https://127.0.0.1.nip.io`
+Leave upstream URL (2) empty as target service is decided in Kubernetes Ingress rule.
+
+![New web app](./img/new-web-app.png)
+
+In demo environment we choose Prevent, but typical approach would be start with Learning and Detect.
+![Prevent](./img/prevent-practice.png)
+
+Choose existing `kind-profile` in Platform step.
+![Kubernetes Profile kind-profile](./img/kind-profile.png)
+
+Finish rest of wizard with default values and make sure to Publish and Enforce new policy.
+
+Confirm your installed agent and check how latest policy is fetched in [Agents section](https://portal.checkpoint.com/dashboard/appsec#/waf-policy/agents?status=Connected&tab=general).
+
+![Agents](./img/agents.png)
+
+Once agents enforce latest policy with Prevent for `http://127.0.0.1.nip.io` we may revisit the site and cause some incident.
+
+```shell
+# simulate SQL injection
+curl 'http://127.0.0.1.nip.io/ip/?q=UNION+1=1'
+```
+
+You will get security incident User Check page instead of real application data. Lets visit incident in logs:
+
+![Incident log](./img/incident-log.png)
+
+Summary: We have working secured ingress into our application, but we had to create Ingress rule in Kubernetes and application web asset in CloudGuard WAF UI. Is there some way to automate web asset creation to automate full deployment including security policy?
+
+## Automation of secure ingress rule and WAF policy
+
+- work in progress
