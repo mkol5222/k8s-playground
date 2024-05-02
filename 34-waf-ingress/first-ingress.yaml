@@ -1,0 +1,27 @@
+# service represents external website
+apiVersion: v1
+kind: Service
+metadata:
+  name: ip-iol-cz
+spec:
+  type: ExternalName
+  externalName: ip.iol.cz
+---
+# will publish it as http://127.0.0.1.nip.io
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: ip-iol-cz
+spec:
+  ingressClassName: public	
+  rules:
+  - host: 127.0.0.1.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ip-iol-cz
+            port:
+              number: 80

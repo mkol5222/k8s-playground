@@ -59,11 +59,11 @@ wget https://downloads.openappsec.io/packages/helm-charts/nginx-ingress/open-app
 # deploy WAF NGINX Ingress using helm
 #  notice it depends on valid auth token in env var CPTOKEN!!!
 helm install appsec open-appsec-k8s-nginx-ingress-latest.tgz \
---set controller.appsec.mode=managed --set appsec.agentToken=$CPTOKEN \
+--set appsec.mode=managed --set appsec.agentToken=$CPTOKEN \
 --set appsec.image.registry="" \
 --set appsec.image.repository=checkpoint \
 --set appsec.image.image=infinity-next-nano-agent \
---set appsec.image.tag=latest \
+--set appsec.image.tag=latest  \
 --set controller.ingressClass=public \
 --set controller.ingressClassResource.name=public \
 --set controller.ingressClassResource.controllerValue="k8s.io/public" \
@@ -72,12 +72,28 @@ helm install appsec open-appsec-k8s-nginx-ingress-latest.tgz \
 -n appsec --create-namespace
 
 # check ns appsec
-kubectl get all -n appsec
+watch -d kubectl get all -n appsec
+```
 
-# watch appsec pods as they are created
-kubectl get po -n appsec --watch
+Summary: we have NGINX Ingress running secured by CloudGuard WAF, but no ingress defined and no WAF policy set.
 
-k describe -n appsec pod/appsec-open-appsec-k8s-nginx-ingress-controller-65f894cc47zp6lc 
-k logs -n appsec pod/appsec-open-appsec-k8s-nginx-ingress-controller-65f894cc47zp6lc 
-echo $CPTOKEN
+## Define first ingress
+
+```shell
+# review defined ingress rule for http://127.0.0.1.nip.io pointing to external website http://ip.iol.cz
+code first-ingress.yaml
+# deploy it
+kubectl create ns 1st-ingress
+kubectl apply -n 1st-ingress -f first-ingress.yaml
+```
+
+Expected output:
+```
+service/ip-iol-cz created
+ingress.networking.k8s.io/ip-iol-cz created
+```
+
+Test access via the ingress
+```shell
+curl http://127.0.0.1.nip.io/ip/
 ```
