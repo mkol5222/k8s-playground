@@ -1,6 +1,7 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-net
 import { load } from "jsr:@std/dotenv";
 import { Command, EnumType } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
+import { stringify } from "jsr:@std/csv";
 
 const URL_AUTH = "https://cloudinfra-gw.portal.checkpoint.com/auth/external"
 const URL_WAF = 'https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql'
@@ -468,6 +469,27 @@ async function demo() {
     console.log(JSON.stringify(publish, null, 2));
 }
 
+function processOutput(data, outputType: string) {
+    switch (outputType) {
+        case 'json':
+            console.log(JSON.stringify(data, null, 2));
+            break;
+        case 'table':
+            console.table(data);
+            break;
+        case 'csv':
+            if (data && data.length > 0) {
+                
+                const fields = Object.keys(data[0]);
+                const csvData = stringify(data, { header: true, columns: fields });
+                console.log(csvData);
+            } else {
+                console.error("No data to export");
+            }
+            break;
+    }
+}
+
 enum OutputType {
     Json = "json",
     Table = "table",
@@ -479,7 +501,7 @@ const output = new EnumType(OutputType);
 
 await new Command()
     .type("output", output)
-    .globalOption("-o, --output [output:output]", "Output format")
+    .globalOption("-o, --output [output:output]", "Output format", {default: "json"})
 
     //.action(console.log)
     .command(
@@ -492,12 +514,11 @@ await new Command()
                     .description("list assets")
                     .option("-f, --filter [filter:string]", "filter by name substring", { default: "" })
                     .action(async (options, ...args) => {
-                        console.log("asset ls called.", options, args)
                         const { output, filter } = options;
                         const config = await loadConfig();
                         const token: AuthResponse = await getToken(config);
                         const assets = await getWebApplicationAssets(token.data.token, filter);
-                        console.log(JSON.stringify(assets, null, 2));
+                        processOutput(assets, output);
                     })
 
             )
@@ -516,12 +537,11 @@ await new Command()
                     .description("list profiles")
                     .option("-f, --filter [filter:string]", "filter by name substring", { default: "" })
                     .action(async (options, ...args) => {
-                        console.log("asset ls called.", options, args)
                         const { output, filter } = options;
                         const config = await loadConfig();
                         const token: AuthResponse = await getToken(config);
                         const profiles = await getProfiles(token.data.token, filter);
-                        console.log(JSON.stringify(profiles, null, 2));
+                        processOutput(profiles, output);
                     })
 
             )
@@ -545,10 +565,11 @@ await new Command()
                         const saasProfileCertificateDomains = await getSaasProfileCertificateDomains(token.data.token, saasProfile.id);
                        
                         for (const cname of saasProfileCertificateDomains) {
-                            cnames.push(cname);
+                            cnames.push({ ...cname, profileName: saasProfile.name, prodileId: saasProfile.id});
+                                
                         } 
                     }
-                    console.log(JSON.stringify(cnames, null, 2));
+                    processOutput(cnames, output);
                 })
         )
         .command(
@@ -576,7 +597,7 @@ await new Command()
                             cnames.push(cname);
                         }
                     }
-                    console.log(JSON.stringify(cnames, null, 2));
+                    processOutput(cnames, output);
                 })
         )
 )
