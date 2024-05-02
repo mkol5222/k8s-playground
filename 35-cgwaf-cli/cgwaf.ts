@@ -40,7 +40,7 @@ type AuthResponse = {
     }
 }
 
-async function getToken(config: WafConfig): AuthResponse {
+async function getToken(config: WafConfig): Promise<AuthResponse> {
     const response = await fetch(URL_AUTH, {
         method: "POST",
         headers: {
@@ -89,6 +89,24 @@ async function deleteAssetRequest(token: string, id: string) {
     console.log(responseJson);
     return responseJson;
 }
+
+async function deleteProfileRequest(token: string, id: string) {
+    const response = await fetch("https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            variables: { id },
+            query: "mutation deleteProfile($id: ID!) {\n deleteProfile(id: $id) }"
+        })
+    });
+    const responseJson = await response.json();
+    console.log(responseJson);
+    return responseJson;
+}
+
 
 async function getPracticesRequest(token: string, matchSearch: string = "") {
     const response = await fetch("https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql", {
@@ -433,6 +451,15 @@ console.log(assetId);
 //     const res = await deleteAssetRequest(token.data.token, assetId);
 //     console.log(JSON.stringify(res, null, 2));
 // }
+
+const profileIdToDelete = await getProfileId(token.data.token, "deleteme");
+console.log('profile 2 delete', profileIdToDelete);
+if (profileIdToDelete) {
+    console.log("Deleting profile");
+    const res = await deleteProfileRequest(token.data.token, profileIdToDelete);
+    console.log(JSON.stringify(res, null, 2));
+
+}
 
 const publish = await publishRequest(token.data.token);
 console.log(JSON.stringify(publish, null, 2));
