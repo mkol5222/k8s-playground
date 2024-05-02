@@ -1,5 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-net
 import { load } from "jsr:@std/dotenv";
+import { Command, EnumType } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
 
 const URL_AUTH = "https://cloudinfra-gw.portal.checkpoint.com/auth/external"
 const URL_WAF = 'https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql'
@@ -324,8 +325,8 @@ async function newWebApplicationAssetRequest(token: string, options: NewWebAppAs
     }
     if (options.hostHeader) {
         variables.assetInput.proxySetting = [
-            { key:"setHeader", value:`Host:${options.hostHeader}` },
-            { key:"isSetHeader", value:"true" } 
+            { key: "setHeader", value: `Host:${options.hostHeader}` },
+            { key: "isSetHeader", value: "true" }
         ]
     }
 
@@ -372,7 +373,7 @@ async function getProfileId(token: string, profileName: string) {
 }
 
 async function getAssetId(token: string, assetName: string) {
-    const assetsData = await getAssetsRequest (token, assetName);
+    const assetsData = await getAssetsRequest(token, assetName);
     if (assetsData.data.getAssets) {
         const assets = assetsData.data.getAssets.assets;
         const asset = assets.find(asset => asset.name === assetName);
@@ -383,83 +384,200 @@ async function getAssetId(token: string, assetName: string) {
     return null;
 }
 
-const config = await loadConfig();
-const token: AuthResponse = await getToken(config);
+async function demo() {
+
+    const config = await loadConfig();
+    const token: AuthResponse = await getToken(config);
 
 
-const profilesResp = await getProfilesRequest(token.data.token, "feb15");
-console.log(JSON.stringify(profilesResp, null, 2));
+    const profilesResp = await getProfilesRequest(token.data.token, "feb15");
+    console.log(JSON.stringify(profilesResp, null, 2));
 
-const assetsData = await getAssetsRequest(token.data.token, "nip");
-console.log(JSON.stringify(assetsData, null, 2));
+    const assetsData = await getAssetsRequest(token.data.token, "nip");
+    console.log(JSON.stringify(assetsData, null, 2));
 
-const assets = await getWebApplicationAssets(token.data.token);
-console.log(JSON.stringify(assets, null, 2));
+    const assets = await getWebApplicationAssets(token.data.token);
+    console.log(JSON.stringify(assets, null, 2));
 
-const assetsKind = await getWebApplicationAssets(token.data.token, "", "kind-profile");
-console.log(JSON.stringify(assetsKind, null, 2));
+    const assetsKind = await getWebApplicationAssets(token.data.token, "", "kind-profile");
+    console.log(JSON.stringify(assetsKind, null, 2));
 
-const profiles = await getProfiles(token.data.token, "feb15", "AppSecSaaS");
-console.log(JSON.stringify(profiles, null, 2));
+    const profiles = await getProfiles(token.data.token, "feb15", "AppSecSaaS");
+    console.log(JSON.stringify(profiles, null, 2));
 
-if (profiles.length > 0) {
-    const saasProfile = profiles[0];
-    const saasProfileCertificateDomains = await getSaasProfileCertificateDomains(token.data.token, saasProfile.id);
-    console.log(JSON.stringify(saasProfileCertificateDomains, null, 2));
+    if (profiles.length > 0) {
+        const saasProfile = profiles[0];
+        const saasProfileCertificateDomains = await getSaasProfileCertificateDomains(token.data.token, saasProfile.id);
+        console.log(JSON.stringify(saasProfileCertificateDomains, null, 2));
 
-    const domainNames = saasProfileCertificateDomains.map(domain => domain.domain);
-    console.log(domainNames);
+        const domainNames = saasProfileCertificateDomains.map(domain => domain.domain);
+        console.log(domainNames);
 
-    const cnames = await getSaasDomainCnames(token.data.token, {
-        region: "eu-west-1",
-        domains: domainNames,
-        profileId: saasProfile.id
-    });
-    console.log(JSON.stringify(cnames, null, 2));
+        const cnames = await getSaasDomainCnames(token.data.token, {
+            region: "eu-west-1",
+            domains: domainNames,
+            profileId: saasProfile.id
+        });
+        console.log(JSON.stringify(cnames, null, 2));
+    }
+    //getSaasProfileCertificateDomainsRequest
+
+    const practices = await getPractices(token.data.token, "WEB APPLICATION BEST PRACTICE");
+    console.log(JSON.stringify(practices, null, 2));
+
+    const practiceId = await getWebApplicationBestPracticeId(token.data.token)
+    console.log(practiceId);
+
+    const profileId = await getProfileId(token.data.token, "feb15");
+    console.log(profileId);
+
+    if (practiceId && profileId) {
+        const res = await newWebApplicationAssetRequest(token.data.token, {
+            name: "devto.klaud.online",
+            URLS: ["https://devto.klaud.online"],
+            upstreamURL: "https://dev.to",
+            profiles: [profileId],
+            practiceId: practiceId,
+            practiceMode: "Prevent",
+            hostHeader: "dev.to"
+        });
+
+        console.log(JSON.stringify(res, null, 2));
+    }
+
+
+    const assetId = await getAssetId(token.data.token, "devto.klaud.online");
+    console.log(assetId);
+
+    // if (assetId) {
+    //     console.log("Deleting asset");
+    //     const res = await deleteAssetRequest(token.data.token, assetId);
+    //     console.log(JSON.stringify(res, null, 2));
+    // }
+
+    const profileIdToDelete = await getProfileId(token.data.token, "deleteme");
+    console.log('profile 2 delete', profileIdToDelete);
+    if (profileIdToDelete) {
+        console.log("Deleting profile");
+        const res = await deleteProfileRequest(token.data.token, profileIdToDelete);
+        console.log(JSON.stringify(res, null, 2));
+
+    }
+
+    const publish = await publishRequest(token.data.token);
+    console.log(JSON.stringify(publish, null, 2));
 }
-//getSaasProfileCertificateDomainsRequest
 
-const practices = await getPractices(token.data.token, "WEB APPLICATION BEST PRACTICE");
-console.log(JSON.stringify(practices, null, 2));
-
-const practiceId = await getWebApplicationBestPracticeId(token.data.token)
-console.log(practiceId);
-
-const profileId = await getProfileId(token.data.token, "feb15");
-console.log(profileId);
-
-if (practiceId && profileId) {
-    const res = await newWebApplicationAssetRequest(token.data.token, {
-        name: "devto.klaud.online",
-        URLS: ["https://devto.klaud.online"],
-        upstreamURL: "https://dev.to",
-        profiles: [profileId],
-        practiceId: practiceId,
-        practiceMode: "Prevent",
-        hostHeader: "dev.to"
-    });
-
-    console.log(JSON.stringify(res, null, 2));
+enum OutputType {
+    Json = "json",
+    Table = "table",
+    Csv = "csv",
 }
 
+// Enum type with enum.
+const output = new EnumType(OutputType);
 
-const assetId = await getAssetId(token.data.token, "devto.klaud.online");
-console.log(assetId);
+await new Command()
+    .type("output", output)
+    .globalOption("-o, --output [output:output]", "Output format")
 
-// if (assetId) {
-//     console.log("Deleting asset");
-//     const res = await deleteAssetRequest(token.data.token, assetId);
-//     console.log(JSON.stringify(res, null, 2));
-// }
+    //.action(console.log)
+    .command(
+        "asset",
+        new Command()
+            .description("manage assets")
+            .command(
+                "ls",
+                new Command()
+                    .description("list assets")
+                    .option("-f, --filter [filter:string]", "filter by name substring", { default: "" })
+                    .action(async (options, ...args) => {
+                        console.log("asset ls called.", options, args)
+                        const { output, filter } = options;
+                        const config = await loadConfig();
+                        const token: AuthResponse = await getToken(config);
+                        const assets = await getWebApplicationAssets(token.data.token, filter);
+                        console.log(JSON.stringify(assets, null, 2));
+                    })
 
-const profileIdToDelete = await getProfileId(token.data.token, "deleteme");
-console.log('profile 2 delete', profileIdToDelete);
-if (profileIdToDelete) {
-    console.log("Deleting profile");
-    const res = await deleteProfileRequest(token.data.token, profileIdToDelete);
-    console.log(JSON.stringify(res, null, 2));
+            )
+            .command("rm", "delete asset by name or id")
+            .option("-i, --id <id:string>", "Asset id.", {})
+            .option("-n, --name <name:string>", "Asset name.", { conflicts: ["id"] })
+            .action((options, ...args) => console.log("asset rm called.", options, args))
+        ,
+    )
+    .command("profile",
+        new Command()
+            .description("manage profiles")
+            .command(
+                "ls",
+                new Command()
+                    .description("list profiles")
+                    .option("-f, --filter [filter:string]", "filter by name substring", { default: "" })
+                    .action(async (options, ...args) => {
+                        console.log("asset ls called.", options, args)
+                        const { output, filter } = options;
+                        const config = await loadConfig();
+                        const token: AuthResponse = await getToken(config);
+                        const profiles = await getProfiles(token.data.token, filter);
+                        console.log(JSON.stringify(profiles, null, 2));
+                    })
 
-}
-
-const publish = await publishRequest(token.data.token);
-console.log(JSON.stringify(publish, null, 2));
+            )
+    )
+    .command("dns",
+    new Command()
+        .description("manage SaaS DNS records (CNAMES)")
+        .command(
+            "cert-cnames",
+            new Command()
+                .description("list CNAMES to validate domain ownership for certificates")
+                .action(async (options, ...args) => {
+                    // console.log("asset ls called.", options, args)
+                    const { output } = options;
+                    const config = await loadConfig();
+                    const token: AuthResponse = await getToken(config);
+                    const saasProfiles = await getProfiles(token.data.token, "", "AppSecSaaS");
+                    //console.log(JSON.stringify(saasProfiles, null, 2));
+                    const cnames = [];
+                    for (const saasProfile of saasProfiles) {
+                        const saasProfileCertificateDomains = await getSaasProfileCertificateDomains(token.data.token, saasProfile.id);
+                       
+                        for (const cname of saasProfileCertificateDomains) {
+                            cnames.push(cname);
+                        } 
+                    }
+                    console.log(JSON.stringify(cnames, null, 2));
+                })
+        )
+        .command(
+            "public-cnames",
+            new Command()
+                .description("list public (protection) CNAMES for SaaS profiles")
+                .action(async (options, ...args) => {
+                    // console.log("asset ls called.", options, args)
+                    const { output } = options;
+                    const config = await loadConfig();
+                    const token: AuthResponse = await getToken(config);
+                    const saasProfiles = await getProfiles(token.data.token, "", "AppSecSaaS");
+                    //console.log(JSON.stringify(saasProfiles, null, 2));
+                    const cnames = [];
+                    for (const saasProfile of saasProfiles) {
+                        const saasProfileCertificateDomains = await getSaasProfileCertificateDomains(token.data.token, saasProfile.id);
+                       
+                        const domainNames = saasProfileCertificateDomains.map(domain => domain.domain);
+                        const cnamesData = await getSaasDomainCnames(token.data.token, {
+                            region: "eu-west-1",
+                            domains: domainNames,
+                            profileId: saasProfile.id
+                        });
+                        for (const cname of cnamesData) {
+                            cnames.push(cname);
+                        }
+                    }
+                    console.log(JSON.stringify(cnames, null, 2));
+                })
+        )
+)
+    .parse(Deno.args);
