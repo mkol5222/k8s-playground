@@ -1,0 +1,83 @@
+# Secure Kubernetes Ingress with CloudGuard WAF
+
+## Deploy cluster with Kind
+
+```shell
+# workdir
+cd /workspaces/k8s-playground/34-waf-ingress/
+
+# will use Arkade package manager to get kind binary
+# https://github.com/alexellis/arkade?tab=readme-ov-file#getting-arkade
+curl -sLS https://get.arkade.dev | sudo sh
+
+# get kind 
+ark get kind
+sudo mv /home/vscode/.arkade/bin/kind /usr/local/bin/
+# get k9s
+ark get k9s
+sudo mv /home/vscode/.arkade/bin/k9s /usr/local/bin/
+
+# now kind command exists
+kind create cluster --config=kind-cluster.yaml
+# our new cluster
+kubectl cluster-info --context kind-kind
+
+# shortcut
+alias k=kubectl
+
+# what we have got
+kubectl get no -o wide
+# pods
+kubectl get po -o wide -A
+```
+
+Summary: we have got running Kubernetes cluster in Codespace, no ingress installed yet.
+
+## Install CloudGuard WAF Ingress Controller
+
+We will combine open-appsec helm chart with CloudGuard WAF management and images.
+Reference: 
+* [open-appsec Kubernetes deployment](https://docs.openappsec.io/getting-started/start-with-kubernetes/install-using-helm-ingress-nginx-and-kong)
+* Infinity Portal [CloudGuard WAF](https://portal.checkpoint.com/dashboard/appsec#/waf-policy/getting-started)
+
+If you do not have Infinify Portal tenant with CloudGuard WAF, simply [register](https://portal.checkpoint.com/register/) for free CloudGuard WAF management tenant.
+
+Create new WAF Profile of type "Kubernetes Profile"
+![new Kubernetes Profile](./img/k8s-profile.png)
+
+Set profile name `kind-profile`, copy and note Authentication Token in your password vault and ignore deployment instructions.
+Make sure to Publish and Enforce, so Token is active before we deploy.
+![kind-profile](./img/kind-profile.png)
+
+```shell
+# your token for deployment use
+export CPTOKEN=cp-ce1a1026-210a-4bfc-9f20-e51d552445ab2bd70a93-cede-44af-9c06-c5cac28ebb10
+
+# download helm chart
+wget https://downloads.openappsec.io/packages/helm-charts/nginx-ingress/open-appsec-k8s-nginx-ingress-latest.tgz
+
+# deploy WAF NGINX Ingress using helm
+#  notice it depends on valid auth token in env var CPTOKEN!!!
+helm install appsec open-appsec-k8s-nginx-ingress-latest.tgz \
+--set controller.appsec.mode=managed --set appsec.agentToken=$CPTOKEN \
+--set appsec.image.registry="" \
+--set appsec.image.repository=checkpoint \
+--set appsec.image.image=infinity-next-nano-agent \
+--set appsec.image.tag=latest \
+--set controller.ingressClass=public \
+--set controller.ingressClassResource.name=public \
+--set controller.ingressClassResource.controllerValue="k8s.io/public" \
+--set appsec.persistence.enabled=false \
+--set controller.service.externalTrafficPolicy=Local \
+-n appsec --create-namespace
+
+# check ns appsec
+kubectl get all -n appsec
+
+# watch appsec pods as they are created
+kubectl get po -n appsec --watch
+
+k describe -n appsec pod/appsec-open-appsec-k8s-nginx-ingress-controller-65f894cc47zp6lc 
+k logs -n appsec pod/appsec-open-appsec-k8s-nginx-ingress-controller-65f894cc47zp6lc 
+echo $CPTOKEN
+```
