@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-env --allow-read --allow-net
 import { load } from "jsr:@std/dotenv";
-import { Command, EnumType } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
+import { Command, EnumType, HelpCommand } from "https://deno.land/x/cliffy@v1.0.0-rc.4/command/mod.ts";
 import { stringify } from "jsr:@std/csv";
 
 const URL_AUTH = "https://cloudinfra-gw.portal.checkpoint.com/auth/external"
@@ -574,7 +574,7 @@ const output = new EnumType(OutputType);
 await new Command()
     .type("output", output)
     .globalOption("-o, --output [output:output]", "Output format", {default: "json"})
-
+    
     //.action(console.log)
     .command(
         "asset",
@@ -693,4 +693,5 @@ new Command()
         console.log(JSON.stringify(publish, null, 2));
     })
 )
+.command("help", new HelpCommand().global())
     .parse(Deno.args);

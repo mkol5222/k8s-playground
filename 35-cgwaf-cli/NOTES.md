@@ -22,5 +22,5 @@ EOF
 code .env
 
 # run
-./cgwaf.ts
+./cgwaf.ts -h
 ```
