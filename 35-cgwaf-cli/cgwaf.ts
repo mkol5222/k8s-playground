@@ -400,6 +400,18 @@ async function getSaasDomainCnamesRequest(
   token: string,
   options: SaasDomainsCnameRequestOptions,
 ) {
+
+
+  // console.log(JSON.stringify({
+  //   variables: {
+  //     "region": options.region || "eu-west-1",
+  //     "domains": options.domains,
+  //     "profileId": options.profileId,
+  //   },
+  //   query:
+  //     "query PublicCNAME($region: String, $domains: [String], $profileId: String) {\n  getPublicCNAME(region: $region, domains: $domains, profileId: $profileId) { domain cname }\n}\n",
+  // }, null, 2));
+
   const response = await fetch(
     "https://cloudinfra-gw.portal.checkpoint.com/app/waf/graphql",
     {
@@ -765,9 +777,9 @@ await new Command()
                 if (!options.emtyContinue) {
                   break;
                 }
-            
+
               }
-              if ( cnames.length > 0 &&
+              if (cnames.length > 0 &&
                 cnames.every((cname) =>
                   cname.certificateValidationStatus === "SUCCESS"
                 )
@@ -795,9 +807,12 @@ await new Command()
         "public-cnames",
         new Command()
           .description("list public (protection) CNAMES for SaaS profiles")
+          .option("-d, --domains [domains:string]", "specify one or comma separated list of domains", { default: "" })
           .action(async (options, ...args) => {
             // console.log("asset ls called.", options, args)
-            const { output } = options;
+            const { output, domains } = options;
+            const userSpecifiedDomains = domains.split(",");
+            const hasUserSpecifiedDomains = userSpecifiedDomains.length > 0;
             const config = await loadConfig();
             const token: AuthResponse = await getToken(config);
             const saasProfiles = await getProfiles(
@@ -814,9 +829,14 @@ await new Command()
                   saasProfile.id,
                 );
 
-              const domainNames = saasProfileCertificateDomains.map((domain) =>
-                domain.domain
-              );
+              let domainNames = [];
+              if (!hasUserSpecifiedDomains) {
+                domainNames = saasProfileCertificateDomains.map((domain) =>
+                  domain.domain
+                );
+              } else {
+                domainNames = userSpecifiedDomains;
+              }
               const cnamesData = await getSaasDomainCnames(token.data.token, {
                 region: "eu-west-1",
                 domains: domainNames,

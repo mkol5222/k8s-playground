@@ -1,0 +1,48 @@
+
+# @name getToken
+
+@clientId={{$dotenv CGWAF_ID}}
+@accessKey={{$dotenv CGWAF_KEY}}
+
+POST https://cloudinfra-gw.portal.checkpoint.com/auth/external
+Content-Type: application/json
+
+{
+    "clientId": "{{clientId}}",
+    "accessKey": "{{accessKey}}"
+}
+
+###
+
+# @name getPublicCnames
+
+@token={{getToken.response.body.data.token}}
+
+POST https://cloudinfra-gw.portal.checkpoint.com/app/waf//graphql
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "operationName": "PublicCNAME",
+    "variables": {
+        "region": "eu-west-1",
+        "domains": ["vuejs.klaud.online"],
+        "profileId": "cec6d6ae-8901-7b1b-485e-ae9cb9b373d8"
+    },
+    "query": "query PublicCNAME($region: String, $domains: [String], $profileId: String) {\n  getPublicCNAME(region: $region, domains: $domains, profileId: $profileId) {\n    domain\n    cname\n    __typename\n  }\n}\n"
+}
+
+# curl 'https://cloudinfra-gw.portal.checkpoint.com/app/waf//graphql' \
+#   --data-raw '{"operationName":"PublicCNAME","variables":{"region":"eu-west-1","domains":["vuejs.klaud.online"],"profileId":"cec6d6ae-8901-7b1b-485e-ae9cb9b373d8"},"query":"query PublicCNAME($region: String, $domains: [String], $profileId: String) {\n  getPublicCNAME(region: $region, domains: $domains, profileId: $profileId) {\n    domain\n    cname\n    __typename\n  }\n}\n"}'
+
+# {
+#   "operationName": "PublicCNAME",
+#   "variables": {
+#     "region": "eu-west-1",
+#     "domains": [
+#       "vuejs.klaud.online"
+#     ],
+#     "profileId": "cec6d6ae-8901-7b1b-485e-ae9cb9b373d8"
+#   },
+#   "query": "query PublicCNAME($region: String, $domains: [String], $profileId: String) {\n  getPublicCNAME(region: $region, domains: $domains, profileId: $profileId) {\n    domain\n    cname\n    __typename\n  }\n}\n"
+# }
