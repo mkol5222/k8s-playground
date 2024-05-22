@@ -812,7 +812,7 @@ await new Command()
             // console.log("asset ls called.", options, args)
             const { output, domains } = options;
             const userSpecifiedDomains = domains.split(",");
-            const hasUserSpecifiedDomains = userSpecifiedDomains.length > 0;
+            const hasUserSpecifiedDomains = domains !== '';
             const config = await loadConfig();
             const token: AuthResponse = await getToken(config);
             const saasProfiles = await getProfiles(
@@ -831,11 +831,15 @@ await new Command()
 
               let domainNames = [];
               if (!hasUserSpecifiedDomains) {
-                domainNames = saasProfileCertificateDomains.map((domain) =>
+                domainNames = saasProfileCertificateDomains
+                  .filter((domain) => domain.certificateValidationStatus === "SUCCESS")
+                  .map((domain) =>
                   domain.domain
                 );
+                // console.log('found domainNames:', saasProfileCertificateDomains, domainNames)
               } else {
                 domainNames = userSpecifiedDomains;
+                // console.log('user defined domainNames:', domainNames, )
               }
               const cnamesData = await getSaasDomainCnames(token.data.token, {
                 region: "eu-west-1",
